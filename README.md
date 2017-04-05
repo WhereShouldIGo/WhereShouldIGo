@@ -1,6 +1,7 @@
 # WhereShouldIGo
 
 The Solution for People Distribution on Subway.
+
 Created by [Team:WhereShouldIGo](https://github.com/WhereShouldIGo) in Sogang Univ.
 
 ## Project Description
