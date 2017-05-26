@@ -25,6 +25,14 @@
 //#include <Adafruit_Sensor.h>
 #include "DHT.h"
 
+#include <ESP8266WiFi.h>
+
+const char* ssid = "olleh_WiFi_D67F";
+const char* pass = "0000003074";
+
+const char* private_server = "119.192.202.112";
+const int serverPort = 8866;
+
 #define DHTPIN 3     // what digital pin we're connected to
 // Uncomment whatever type you're using!
 #define DHTTYPE DHT11   // DHT 11
@@ -46,11 +54,25 @@ Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 // as the current DHT reading algorithm adjusts itself to work on faster procs.
 DHT dht(DHTPIN, DHTTYPE);
 
+void connect_ap(){
+  Serial.println();
+  Serial.print("connecting to WiFi ");
+  Serial.println(ssid);
+  WiFi.begin(ssid,pass);
+
+  while(WiFi.status()!=WL_CONNECTED){
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.print("\n Got WiFi, IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
 void setup() {
   Serial.begin(9600);
 
   Serial.println("Adafruit MLX90614 & Dht11 test");  
-
+  connect_ap();
   mlx.begin();
   dht.begin();  
 }
