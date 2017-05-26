@@ -1,90 +1,111 @@
-/*************************************************** 
+/****************************************************
   This is a library example for the MLX90614 Temp Sensor
-
+ 
   Designed specifically to work with the MLX90614 sensors in the
   adafruit shop
   ----> https://www.adafruit.com/products/1748
   ----> https://www.adafruit.com/products/1749
-
-  These sensors use I2C to communicate, 2 pins are required to  
+ 
+  These sensors use I2C to communicate, 2 pins are required to
   interface
-  Adafruit invests time and resources providing this open source code, 
-  please support Adafruit and open-source hardware by purchasing 
+  Adafruit invests time and resources providing this open source code,
+  please support Adafruit and open-source hardware by purchasing
   products from Adafruit!
-
-  Written by Limor Fried/Ladyada for Adafruit Industries.  
+ 
+  Written by Limor Fried/Ladyada for Adafruit Industries.
   BSD license, all text above must be included in any redistribution
  ****************************************************/
-
+ 
 #include <Wire.h>
 #include <Adafruit_MLX90614.h>
-
+ 
 // Example testing sketch for various DHT humidity/temperature sensors
 // Written by ladyada, public domain
-
+ 
 //#include <Adafruit_Sensor.h>
 #include "DHT.h"
-
-#include <ESP8266WiFi.h>
-
-const char* ssid = "olleh_WiFi_D67F";
-const char* pass = "0000003074";
-
+ 
+#include <SoftwareSerial.h>
+ 
+const char* ssid = "lame";
+const char* pass = "lame@tkddnr";
+ 
 const char* private_server = "119.192.202.112";
-const int serverPort = 8866;
-
-#define DHTPIN 3     // what digital pin we're connected to
+const int serverPort = 8865;
+SoftwareSerial esp8266(2,3);//TX,RX
+ 
+#define DHTPIN 8     // what digital pin we're connected to
 // Uncomment whatever type you're using!
 #define DHTTYPE DHT11   // DHT 11
 //#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 //#define DHTTYPE DHT21   // DHT 21 (AM2301)
-
+ 
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
-
+ 
 // Connect pin 1 (on the left) of the sensor to +5V
 // NOTE: If using a board with 3.3V logic like an Arduino Due connect pin 1
 // to 3.3V instead of 5V!
 // Connect pin 2 of the sensor to whatever your DHTPIN is
 // Connect pin 4 (on the right) of the sensor to GROUND
 // Connect a 10K resistor from pin 2 (data) to pin 1 (power) of the sensor
-
+ 
 // Initialize DHT sensor.
 // Note that older versions of this library took an optional third parameter to
 // tweak the timings for faster processors.  This parameter is no longer needed
 // as the current DHT reading algorithm adjusts itself to work on faster procs.
 DHT dht(DHTPIN, DHTTYPE);
-
-void connect_ap(){
+ 
+boolean connect_ap() {
   Serial.println();
   Serial.print("connecting to WiFi ");
   Serial.println(ssid);
-  WiFi.begin(ssid,pass);
-
-  while(WiFi.status()!=WL_CONNECTED){
-    delay(500);
-    Serial.print(".");
+  String cmd = "AT+CWJAP=\"";
+  cmd+=ssid;
+  cmd+="\",\"";
+  cmd+=pass;
+  cmd+="\"";
+  esp8266.println(cmd);
+  Serial.println(cmd);
+  delay(5000);
+ 
+  if(esp8266.find("OK")){
+     Serial.println("\n Got WiFi ");
+     return true;
   }
-  Serial.print("\n Got WiFi, IP address: ");
-  Serial.println(WiFi.localIP());
+  else return false;
 }
-
+ 
 void setup() {
   Serial.begin(9600);
-
-  Serial.println("Adafruit MLX90614 & Dht11 test");  
-  connect_ap();
+  
+  esp8266.begin(9600);
+  Serial.println("ESP8266 connect");
+  //Serial.println("Adafruit MLX90614 & Dht11 test");
+  
+  boolean connected = false;
+  for(int i=0;i<10;i++){
+    if(connect_ap()){
+      connected=true;
+      break;
+    }
+  }
+  delay(5000);
+  
+  esp8266.println("AT+CIPMUX=0");
   mlx.begin();
-  dht.begin();  
+  dht.begin();
 }
-
+ 
 void loop() {
-  Serial.print("Ambient = "); Serial.print(mlx.readAmbientTempC()); 
-  Serial.print("*C\tObject = "); Serial.print(mlx.readObjectTempC()); Serial.println("*C");
-  Serial.print("Ambient = "); Serial.print(mlx.readAmbientTempF()); 
-  Serial.print("*F\tObject = "); Serial.print(mlx.readObjectTempF()); Serial.println("*F");
-
-  Serial.println();
-
+  
+    Serial.print("Ambient = "); Serial.print(mlx.readAmbientTempC());
+    Serial.print("*C\tObject = "); Serial.print(mlx.readObjectTempC()); Serial.println("*C");
+    Serial.print("Ambient = "); Serial.print(mlx.readAmbientTempF());
+    Serial.print("*F\tObject = "); Serial.print(mlx.readObjectTempF()); Serial.println("*F");
+ 
+    Serial.println();
+  
+  
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   float h = dht.readHumidity();
@@ -92,18 +113,18 @@ void loop() {
   float t = dht.readTemperature();
   // Read temperature as Fahrenheit (isFahrenheit = true)
   float f = dht.readTemperature(true);
-
+ 
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t) || isnan(f)) {
     Serial.println("Failed to read from DHT sensor!");
-    return;
+    //return;
   }
-
+ 
   // Compute heat index in Fahrenheit (the default)
   float hif = dht.computeHeatIndex(f, h);
   // Compute heat index in Celsius (isFahreheit = false)
   float hic = dht.computeHeatIndex(t, h, false);
-
+ 
   Serial.print("Humidity: ");
   Serial.print(h);
   Serial.print(" %\t");
@@ -117,6 +138,6 @@ void loop() {
   Serial.print(" *C ");
   Serial.print(hif);
   Serial.println(" *F");
-  
-  delay(2000);
+ 
+  delay(10000);
 }
