@@ -30,7 +30,7 @@
 const char* ssid = "lame";
 const char* pass = "lame@tkddnr";
  
-const char* private_server = "119.192.202.112";
+String private_server = "119.192.202.112";
 const int serverPort = 8865;
 SoftwareSerial esp8266(2,3);//TX,RX
  
@@ -110,6 +110,39 @@ void dht_measure(float *rel_hum,float *temp,float *hic){
   Serial.println(" *C ");
   Serial.println();
 }
+
+void send_post_packet(float temp_ambient,float temp_object,float rel_hum,float temp,float hic){
+  Serial.println("Starting connection to server...");
+  String content="temp_amb="+String(temp_ambient)+"&temp_obj="+String(temp_object)+"&dht_hum="+String(rel_hum)+"&dht_temp="+String(temp)+"&dht_hic="+String(hic);
+
+  esp8266.println("AT+CIPSTART=\"TCP\",\""+private_server+"\","+String(serverPort));
+  Serial.println("AT+CIPSTART=\"TCP\",\""+private_server+"\","+String(serverPort));
+  if(esp8266.find("OK")){
+    Serial.println("TCP connection ready");
+  } delay(1000);
+
+  String postReq="POST / HTTP/1.1\r\nHOST: "+private_server
+                +"\r\nAccept: */*\r\nContent-Length: "+String(content.length())
+                +"\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n"
+                +content;
+  String sendCmd="AT+CIPSEND=";
+  esp8266.print(sendCmd);
+  esp8266.println(postReq.length());
+  delay(5000);
+  //Serial.println(esp8266.readString());
+  if(esp8266.find(">")) { 
+    Serial.println("Sending..");
+    esp8266.print(postReq);
+    if(esp8266.find("SEND OK")){
+      Serial.println("Packent sent");
+      while(esp8266.available()){
+        String tmpResp=esp8266.readString();
+        Serial.println(tmpResp);
+      }
+      esp8266.println("AT+CIPCLOSE");
+    }
+  }
+}
  
 void setup() {
   Serial.begin(9600);
@@ -137,6 +170,7 @@ void loop() {
   float rel_hum,temp,hic;
   mlx_measure(&temp_ambient,&temp_object);
   dht_measure(&rel_hum,&temp,&hic);
- 
+
+  send_post_packet(temp_ambient,temp_object,rel_hum,temp,hic);
   delay(10000);
 }
