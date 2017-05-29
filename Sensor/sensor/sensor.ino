@@ -74,13 +74,49 @@ boolean connect_ap() {
   }
   else return false;
 }
+
+void mlx_measure(float *temp_ambient, float *temp_object){
+
+  *temp_ambient=mlx.readAmbientTempC();
+  *temp_object=mlx.readObjectTempC();
+  Serial.print("Ambient = "); Serial.print(*temp_ambient);
+  Serial.print("*C\tObject = "); Serial.print(*temp_object); Serial.println("*C");
+}
+
+void dht_measure(float *rel_hum,float *temp,float *hic){
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  *rel_hum = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  *temp = dht.readTemperature();
+ 
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(*rel_hum) || isnan(*temp)) {
+    Serial.println("Failed to read from DHT sensor!");
+    //return;
+  }
+ 
+  // Compute heat index in Celsius (isFahreheit = false)
+  *hic = dht.computeHeatIndex(*temp, *rel_hum, false);
+ 
+  Serial.print("Humidity: ");
+  Serial.print(*rel_hum);
+  Serial.print(" %\t");
+  Serial.print("Temperature: ");
+  Serial.print(*temp);
+  Serial.print(" *C ");
+  Serial.print("Heat index: ");
+  Serial.print(*hic);
+  Serial.println(" *C ");
+  Serial.println();
+}
  
 void setup() {
   Serial.begin(9600);
   
   esp8266.begin(9600);
   Serial.println("ESP8266 connect");
-  //Serial.println("Adafruit MLX90614 & Dht11 test");
+  Serial.println("Adafruit MLX90614 & Dht11");
   
   boolean connected = false;
   for(int i=0;i<10;i++){
@@ -97,47 +133,10 @@ void setup() {
 }
  
 void loop() {
-  
-    Serial.print("Ambient = "); Serial.print(mlx.readAmbientTempC());
-    Serial.print("*C\tObject = "); Serial.print(mlx.readObjectTempC()); Serial.println("*C");
-    Serial.print("Ambient = "); Serial.print(mlx.readAmbientTempF());
-    Serial.print("*F\tObject = "); Serial.print(mlx.readObjectTempF()); Serial.println("*F");
- 
-    Serial.println();
-  
-  
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
-  // Read temperature as Fahrenheit (isFahrenheit = true)
-  float f = dht.readTemperature(true);
- 
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(h) || isnan(t) || isnan(f)) {
-    Serial.println("Failed to read from DHT sensor!");
-    //return;
-  }
- 
-  // Compute heat index in Fahrenheit (the default)
-  float hif = dht.computeHeatIndex(f, h);
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hic = dht.computeHeatIndex(t, h, false);
- 
-  Serial.print("Humidity: ");
-  Serial.print(h);
-  Serial.print(" %\t");
-  Serial.print("Temperature: ");
-  Serial.print(t);
-  Serial.print(" *C ");
-  Serial.print(f);
-  Serial.print(" *F\t");
-  Serial.print("Heat index: ");
-  Serial.print(hic);
-  Serial.print(" *C ");
-  Serial.print(hif);
-  Serial.println(" *F");
+  float temp_ambient,temp_object;
+  float rel_hum,temp,hic;
+  mlx_measure(&temp_ambient,&temp_object);
+  dht_measure(&rel_hum,&temp,&hic);
  
   delay(10000);
 }
