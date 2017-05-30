@@ -28,10 +28,10 @@
  
 #include <SoftwareSerial.h>
  
-const char* ssid = "ReleaseWifi";
-const char* pass = "10161016";
+const char* ssid = "lame";
+const char* pass = "lame@tkddnr";
  
-String private_server = "163.239.78.101";
+String private_server = "119.192.202.112";
 const int serverPort = 8867;
 SoftwareSerial esp8266(2,3);//TX,RX
  
@@ -136,19 +136,20 @@ void send_post_packet(float temp_ambient,float temp_object,float rel_hum,float t
   String content="?amb="+String(temp_ambient);
 
   sendData("AT+CIPSTART=\"TCP\",\""+private_server+"\", "+String(serverPort)+"\r\n",1000,DEBUG);
-  Serial.println("AT+CIPSTART=\"TCP\",\""+private_server+"\", "+String(serverPort));
-  
-  if(esp8266.find("OK")){
-    Serial.println("TCP connection ready");
-  } delay(1000);
+  //Serial.println("AT+CIPSTART=\"TCP\",\""+private_server+"\", "+String(serverPort));
 
-  String postReq="GET /ga"+content+" HTTP/1.1\r\nHost: "+private_server+"/r/n/r/n";
+  /*if(esp8266.find("OK")){
+    Serial.println("TCP connection ready");
+  } delay(1000);*/
+  //sendData("AT+CIPMODE=1\r\n",1000,DEBUG);
+  //delay(1000);
+
+  String postReq="GET /ga"+content+" HTTP/1.0\r\n\r\n";
   //              +"\r\nAccept: */**\r\nContent-Length: "+String(content.length())
   //              +"\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
   String sendCmd="AT+CIPSEND="+String(postReq.length())+"\r\n";
-  sendData(sendCmd,1000,DEBUG);
-  delay(500);
-  sendData(postReq,5000,DEBUG);
+  sendData(sendCmd,500,DEBUG);
+  sendData(postReq,1000,DEBUG);
   //Serial.println(esp8266.readString());
   /*if(esp8266.find(">")) { 
     Serial.println("Sending..");
@@ -170,7 +171,7 @@ void setup() {
   Serial.begin(9600);
   
   esp8266.begin(9600);
-  sendData("AT+RST",2000,DEBUG);
+  //sendData("AT+RST",2000,DEBUG);
   Serial.println("ESP8266 connect");
   Serial.println("Adafruit MLX90614 & Dht11");
   
@@ -184,8 +185,9 @@ void setup() {
     }
   }
   delay(5000);
-  
-  esp8266.println("AT+CIPMUX=0");
+
+  Serial.println("Single Connection");
+  sendData("AT+CIPMUX=0\r\n",1000,DEBUG);
   mlx.begin();
   dht.begin();
 }
