@@ -15,6 +15,7 @@
   Written by Limor Fried/Ladyada for Adafruit Industries.
   BSD license, all text above must be included in any redistribution
  ****************************************************/
+#define DEBUG true
  
 #include <Wire.h>
 #include <Adafruit_MLX90614.h>
@@ -27,11 +28,11 @@
  
 #include <SoftwareSerial.h>
  
-const char* ssid = "lame";
-const char* pass = "lame@tkddnr";
+const char* ssid = "ReleaseWifi";
+const char* pass = "10161016";
  
-String private_server = "119.192.202.112";
-const int serverPort = 8865;
+String private_server = "163.239.78.101";
+const int serverPort = 8867;
 SoftwareSerial esp8266(2,3);//TX,RX
  
 #define DHTPIN 8     // what digital pin we're connected to
@@ -57,6 +58,7 @@ DHT dht(DHTPIN, DHTTYPE);
  
 boolean connect_ap() {
   Serial.println();
+  sendData("AT+CWMODE=3\r\n",1000,DEBUG);
   Serial.print("connecting to WiFi ");
   Serial.println(ssid);
   String cmd = "AT+CWJAP=\"";
@@ -111,43 +113,64 @@ void dht_measure(float *rel_hum,float *temp,float *hic){
   Serial.println();
 }
 
+String sendData(String command, const int timeout, boolean debug){
+  String response="";
+
+  esp8266.print(command);
+
+  long int time =millis();
+  while((time+timeout)>millis()){
+    while(esp8266.available()){
+      char c = esp8266.read();
+      response+=c;
+    }
+  }
+  if(debug){
+    Serial.print(response);
+  }
+  return response;
+}
+
 void send_post_packet(float temp_ambient,float temp_object,float rel_hum,float temp,float hic){
   Serial.println("Starting connection to server...");
-  String content="temp_amb="+String(temp_ambient)+"&temp_obj="+String(temp_object)+"&dht_hum="+String(rel_hum)+"&dht_temp="+String(temp)+"&dht_hic="+String(hic);
+  String content="?amb="+String(temp_ambient);
 
-  esp8266.println("AT+CIPSTART=\"TCP\",\""+private_server+"\","+String(serverPort));
-  Serial.println("AT+CIPSTART=\"TCP\",\""+private_server+"\","+String(serverPort));
+  sendData("AT+CIPSTART=\"TCP\",\""+private_server+"\", "+String(serverPort)+"\r\n",1000,DEBUG);
+  Serial.println("AT+CIPSTART=\"TCP\",\""+private_server+"\", "+String(serverPort));
+  
   if(esp8266.find("OK")){
     Serial.println("TCP connection ready");
   } delay(1000);
 
-  String postReq="POST / HTTP/1.1\r\nHOST: "+private_server
-                +"\r\nAccept: */*\r\nContent-Length: "+String(content.length())
-                +"\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n"
-                +content;
-  String sendCmd="AT+CIPSEND=";
-  esp8266.print(sendCmd);
-  esp8266.println(postReq.length());
-  delay(5000);
+  String postReq="GET /ga"+content+" HTTP/1.1\r\nHost: "+private_server+"/r/n/r/n";
+  //              +"\r\nAccept: */**\r\nContent-Length: "+String(content.length())
+  //              +"\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
+  String sendCmd="AT+CIPSEND="+String(postReq.length())+"\r\n";
+  sendData(sendCmd,1000,DEBUG);
+  delay(500);
+  sendData(postReq,5000,DEBUG);
   //Serial.println(esp8266.readString());
-  if(esp8266.find(">")) { 
+  /*if(esp8266.find(">")) { 
     Serial.println("Sending..");
     esp8266.print(postReq);
     if(esp8266.find("SEND OK")){
       Serial.println("Packent sent");
       while(esp8266.available()){
         String tmpResp=esp8266.readString();
+        delay(1000);
         Serial.println(tmpResp);
       }
       esp8266.println("AT+CIPCLOSE");
     }
-  }
+  }*/
+  sendData("AT+CIPCLOSE\r\n",1000,DEBUG);
 }
  
 void setup() {
   Serial.begin(9600);
   
   esp8266.begin(9600);
+  sendData("AT+RST",2000,DEBUG);
   Serial.println("ESP8266 connect");
   Serial.println("Adafruit MLX90614 & Dht11");
   
@@ -155,6 +178,8 @@ void setup() {
   for(int i=0;i<10;i++){
     if(connect_ap()){
       connected=true;
+      //TEST
+      //esp8266.println("AT+UART_DEF=9600,8,1,0,0");
       break;
     }
   }
