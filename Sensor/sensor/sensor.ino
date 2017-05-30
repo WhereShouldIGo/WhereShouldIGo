@@ -133,7 +133,7 @@ String sendData(String command, const int timeout, boolean debug){
 
 void send_post_packet(float temp_ambient,float temp_object,float rel_hum,float temp,float hic){
   Serial.println("Starting connection to server...");
-  String content="?amb="+String(temp_ambient);
+  String content="?amb="+String(temp_ambient)+"&obj="+String(temp_object)+"&hum="+String(rel_hum);
 
   sendData("AT+CIPSTART=\"TCP\",\""+private_server+"\", "+String(serverPort)+"\r\n",1000,DEBUG);
   //Serial.println("AT+CIPSTART=\"TCP\",\""+private_server+"\", "+String(serverPort));
@@ -144,7 +144,7 @@ void send_post_packet(float temp_ambient,float temp_object,float rel_hum,float t
   //sendData("AT+CIPMODE=1\r\n",1000,DEBUG);
   //delay(1000);
 
-  String postReq="GET /ga"+content+" HTTP/1.0\r\n\r\n";
+  String postReq="GET /getdata"+content+" HTTP/1.0\r\n\r\n";
   //              +"\r\nAccept: */**\r\nContent-Length: "+String(content.length())
   //              +"\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
   String sendCmd="AT+CIPSEND="+String(postReq.length())+"\r\n";
