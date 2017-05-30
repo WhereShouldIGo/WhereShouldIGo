@@ -191,13 +191,18 @@ void setup() {
   mlx.begin();
   dht.begin();
 }
- 
+
+#define interval 10000
+unsigned long mark=0;
 void loop() {
   float temp_ambient,temp_object;
   float rel_hum,temp,hic;
-  mlx_measure(&temp_ambient,&temp_object);
-  dht_measure(&rel_hum,&temp,&hic);
+  if(millis()>mark){
+    mark=millis()+interval;
+    mlx_measure(&temp_ambient,&temp_object);
+    dht_measure(&rel_hum,&temp,&hic);
 
-  send_post_packet(temp_ambient,temp_object,rel_hum,temp,hic);
-  delay(10000);
+    send_post_packet(temp_ambient,temp_object,rel_hum,temp,hic);
+  //delay(10000);
+  }
 }
