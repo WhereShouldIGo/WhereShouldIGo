@@ -71,6 +71,32 @@ app.get('/getdata',function(req,res) {
          }
 })
 
+app.get('/readdata',function(req,res) {
+     
+       //  if(req.query.amb && req.query.obj && req.query.hum
+       //      && typeof req.query.amb != 'undefined' && typeof req.query.obj != 'undefined' && typeof req.query.hum != 'undefined') {   
+            connection.query('SELECT temp_obj from sensor ORDER BY data_num DESC LIMIT 1',function(err,rows,cols) {
+
+             console.log(rows[0].temp_obj);
+             data = rows[0].temp_obj;
+            res.writeHeader(200,{"Content-Type" :"text/plain"});
+            if(data < 26.0)
+            {
+                res.write("Green");
+            }
+            else if(data < 26.5)
+            {
+                res.write("Yellow");
+            }
+            else if(data >= 26.5) 
+            {
+                res.write("Red");
+            }
+
+            res.end();
+        })
+
+})
 app.get('/ga',function(req,res){
     if(req.query.amb && typeof req.query.amb != 'undefined'){
         console.log(req.query.amb);
