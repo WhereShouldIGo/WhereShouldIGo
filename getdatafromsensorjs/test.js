@@ -35,14 +35,15 @@ for(var k in interfaces){
 app.get('/getdata',function(req,res) {
         //send current time and temperature to client
         //if(req.query.temp_amb && typeof req.query.temp_amb != 'undefined'){
-         if(req.query.amb && req.query.obj && req.query.hum
-            && typeof req.query.amb != 'undefined' && typeof req.query.obj != 'undefined' && typeof req.query.hum != 'undefined') {   
-            
+         if(req.query.dur && req.query.obj 
+            && typeof req.query.dur != 'undefined' && typeof req.query.obj != 'undefined' ) {   
+           
+            req.query.dur -= 2.00;
             var dt = dateTime.create();
             var formatted = dt.format('Y-m-d H:M:S\n');
-            res.write(formatted+'temp_amb: ' + req.query.amb + '\ntemp_obj: ' + req.query.obj + '\nhum: ' + req.query.hum);
+            res.write(formatted+'dur: ' + req.query.dur + '\ntemp_obj: ' + req.query.obj );
             res.end();
-            console.log(formatted+'temp_amb: ' + req.query.amb + 'temp_obj: '+req.query.obj+'hum: '+req.query.hum);
+            console.log(formatted+'dur: ' + req.query.dur + 'temp_obj: '+req.query.obj);
 /*
             res.send(formatted+' dht_hum:' + req.query.dht_hum);
             console.log(foramtted+' dht_hum:' + req.query.dht_hum);
@@ -54,11 +55,11 @@ app.get('/getdata',function(req,res) {
             console.log(foramtted+' dht_hic:' + req.query.dht_hic);
 */
             data={};
-            data.subway_id = 3000;
-            data.subway_car = 1;
-            data.temp_amb=req.query.amb;
+            data.display_id = 1;
+            //data.subway_car = 1;
+            data.duration=req.query.dur;
             data.temp_obj=req.query.obj;
-            data.dht_hum=req.query.hum;
+            //data.dht_hum=req.query.hum;
             //data._temp = req.query.temp;
             //Insert data to DB by quesry
             connection.query('INSERT INTO sensor SET ?',data,function(err,rows,cols){
@@ -80,15 +81,15 @@ app.get('/readdata',function(req,res) {
              console.log(rows[0].temp_obj);
              data = rows[0].temp_obj;
             res.writeHeader(200,{"Content-Type" :"text/plain"});
-            if(data < 26.0)
+            if(data < 26.8)
             {
                 res.write("Green");
             }
-            else if(data < 26.5)
+            else if(data < 27.15)
             {
                 res.write("Yellow");
             }
-            else if(data >= 26.5) 
+            else if(data >= 27.15) 
             {
                 res.write("Red");
             }
