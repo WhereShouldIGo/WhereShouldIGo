@@ -1,33 +1,12 @@
-/****************************************************
-  This is a library example for the MLX90614 Temp Sensor
- 
-  Designed specifically to work with the MLX90614 sensors in the
-  adafruit shop
-  ----> https://www.adafruit.com/products/1748
-  ----> https://www.adafruit.com/products/1749
- 
-  These sensors use I2C to communicate, 2 pins are required to
-  interface
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit and open-source hardware by purchasing
-  products from Adafruit!
- 
-  Written by Limor Fried/Ladyada for Adafruit Industries.
-  BSD license, all text above must be included in any redistribution
- ****************************************************/
 #define DEBUG true
  
 #include <Wire.h>
 #include <Adafruit_MLX90614.h>
- 
-// Example testing sketch for various DHT humidity/temperature sensors
-// Written by ladyada, public domain
- 
-//#include <Adafruit_Sensor.h>
-#include "DHT.h"
- 
 #include <SoftwareSerial.h>
- 
+#include <DFPlayer_Mini_Mp3.h>
+
+SoftwareSerial mp3Serial(6,7);
+
 const char* ssid = "lame";
 const char* pass = "lame@tkddnr";
  
@@ -35,27 +14,14 @@ String private_server = "119.192.202.112";
 const int serverPort = 8867;
 SoftwareSerial esp8266(2,3);//TX,RX
  
-#define DHTPIN 8     // what digital pin we're connected to
-// Uncomment whatever type you're using!
-#define DHTTYPE DHT11   // DHT 11
-//#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
-//#define DHTTYPE DHT21   // DHT 21 (AM2301)
- 
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
  
-// Connect pin 1 (on the left) of the sensor to +5V
-// NOTE: If using a board with 3.3V logic like an Arduino Due connect pin 1
-// to 3.3V instead of 5V!
-// Connect pin 2 of the sensor to whatever your DHTPIN is
-// Connect pin 4 (on the right) of the sensor to GROUND
-// Connect a 10K resistor from pin 2 (data) to pin 1 (power) of the sensor
- 
-// Initialize DHT sensor.
-// Note that older versions of this library took an optional third parameter to
-// tweak the timings for faster processors.  This parameter is no longer needed
-// as the current DHT reading algorithm adjusts itself to work on faster procs.
-DHT dht(DHTPIN, DHTTYPE);
- 
+// UltraSonic Sensor interfacing to Arduino .
+
+//int buzzer = 9;
+int triggerPin = 11; //triggering on pin 7
+int echoPin = 12; //echo on pin 8
+
 boolean connect_ap() {
   Serial.println();
   sendData("AT+CWMODE=3\r\n",1000,DEBUG);
@@ -83,34 +49,6 @@ void mlx_measure(float *temp_ambient, float *temp_object){
   *temp_object=mlx.readObjectTempC();
   Serial.print("Ambient = "); Serial.print(*temp_ambient);
   Serial.print("*C\tObject = "); Serial.print(*temp_object); Serial.println("*C");
-}
-
-void dht_measure(float *rel_hum,float *temp,float *hic){
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  *rel_hum = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  *temp = dht.readTemperature();
- 
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(*rel_hum) || isnan(*temp)) {
-    Serial.println("Failed to read from DHT sensor!");
-    //return;
-  }
- 
-  // Compute heat index in Celsius (isFahreheit = false)
-  *hic = dht.computeHeatIndex(*temp, *rel_hum, false);
- 
-  Serial.print("Humidity: ");
-  Serial.print(*rel_hum);
-  Serial.print(" %\t");
-  Serial.print("Temperature: ");
-  Serial.print(*temp);
-  Serial.print(" *C ");
-  Serial.print("Heat index: ");
-  Serial.print(*hic);
-  Serial.println(" *C ");
-  Serial.println();
 }
 
 String sendData(String command, const int timeout, boolean debug){
@@ -169,6 +107,10 @@ void send_post_packet(float temp_ambient,float temp_object,float rel_hum,float t
  
 void setup() {
   Serial.begin(9600);
+  mp3Serial.begin(9600);
+  mp3_set_serial (mp3Serial);      // DFPlayer-mini mp3 module 시리얼 세팅
+  delay(1);                     // 볼륨값 적용을 위한 delay
+  mp3_set_volume (15);          // 볼륨조절 값 0~30
   
   esp8266.begin(9600);
   //sendData("AT+RST",2000,DEBUG);
@@ -189,20 +131,50 @@ void setup() {
   Serial.println("Single Connection");
   sendData("AT+CIPMUX=0\r\n",1000,DEBUG);
   mlx.begin();
-  dht.begin();
+  
+  pinMode(triggerPin, OUTPUT); //defining pins
+  pinMode(echoPin, INPUT);
+
+  
 }
 
-#define interval 10000
+int dist_measure(){
+
+  int duration, distance; //Adding duration and distance
+  digitalWrite(triggerPin, HIGH); //triggering the wave(like blinking an LED)
+  delay(10);
+  digitalWrite(triggerPin, LOW);
+  duration = pulseIn(echoPin, HIGH); //a special function for listening and waiting for the wave
+  distance = (duration/2) / 29.1; //transforming the number to cm(if you want inches, you have to change the 29.1 with a suitable number
+  delay(10);
+  Serial.print(distance); //printing the numbers
+  Serial.println("cm"); //and the unit
+  
+  return distance;
+}
+
+#define interval 1000
 unsigned long mark=0;
 void loop() {
+  boolean play_state = digitalRead(8);
   float temp_ambient,temp_object;
   float rel_hum,temp,hic;
+  int distance;
+  
   if(millis()>mark){
     mark=millis()+interval;
-    mlx_measure(&temp_ambient,&temp_object);
-    dht_measure(&rel_hum,&temp,&hic);
+    distance=dist_measure();
+    
+    while(distance<100){
+      mlx_measure(&temp_ambient,&temp_object);
+      mp3_play(1);
+      delay(5000);
+      distance=dist_measure();
+    }
+    mp3_stop();
+//Serial.println(" "); //just printing to a new line
 
-    send_post_packet(temp_ambient,temp_object,rel_hum,temp,hic);
+    //send_post_packet(temp_ambient,temp_object,rel_hum,temp,hic);
   //delay(10000);
   }
 }
